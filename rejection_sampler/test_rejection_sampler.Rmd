@@ -1,0 +1,166 @@
+---
+title: "Test Rejection Sampler"
+author: "Yihao Gu"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+source('rejection_sampler.R')
+source('helper.R')
+library('truncnorm')
+library('truncdist')
+```
+
+## Case 1: $0 < a < 1, 0 \leq c < \frac{1}{a}$
+```{r}
+# Rejection sampling
+a = 0.1
+c = 5
+Nsim = 10^5
+res = rejection_sampler(a, c, Nsim)
+sample = res$sample
+acceptance_rate = res$ar
+
+# Acceptance rate
+cat('The acceptance rate is', acceptance_rate, '.\n')
+
+# Plot
+plot_lscale_sample(sample, a, c)
+```
+
+## Case 2: $0 < a < 0.25, c \geq \frac{1}{a}$
+```{r}
+# Rejection sampling
+a = 0.1
+c = 20
+Nsim = 10^5
+res = rejection_sampler(a, c, Nsim)
+sample = res$sample
+acceptance_rate = res$ar
+
+# Acceptance rate
+cat('The acceptance rate is', acceptance_rate, '.\n')
+
+# Plot
+plot_lscale_sample(sample, a, c)
+```
+
+## Case 3: $a \geq 0.25, c \geq \max(1,\frac{1}{a})$
+```{r}
+# Rejection sampling
+a = 1
+c = 1
+Nsim = 10^5
+res = rejection_sampler(a, c, Nsim)
+sample = res$sample
+acceptance_rate = res$ar
+
+# Acceptance rate
+cat('The acceptance rate is', acceptance_rate, '.\n')
+
+# Plot
+plot_lscale_sample(sample, a, c)
+```
+
+## Case 4: $a \geq 1, 0.5 \leq c < 1$
+```{r}
+# Rejection sampling
+a = 2
+c = 0.8
+Nsim = 10^5
+res = rejection_sampler(a, c, Nsim)
+sample = res$sample
+acceptance_rate = res$ar
+
+# Acceptance rate
+cat('The acceptance rate is', acceptance_rate, '.\n')
+
+# Plot
+plot_lscale_sample(sample, a, c)
+```
+
+## Case 5: $a \geq 1, 0 \leq c < 0.5$
+```{r}
+# Rejection sampling
+a = 3
+c = 0.3
+Nsim = 10^5
+res = rejection_sampler(a, c, Nsim)
+sample = res$sample
+acceptance_rate = res$ar
+
+# Acceptance rate
+cat('The acceptance rate is', acceptance_rate, '.\n')
+
+# Plot
+plot_lscale_sample(sample, a, c)
+```
+
+## Case 6: $0 < a \leq 1, \max(-\frac{1}{a}, -\frac{1}{2a^2}) \geq c < 0$
+```{r}
+# Rejection sampling
+a = 0.01
+c = - 5
+Nsim = 10^5
+res = rejection_sampler(a, c, Nsim)
+sample = res$sample
+acceptance_rate = res$ar
+
+# Acceptance rate
+cat('The acceptance rate is', acceptance_rate, '.\n')
+
+# Plot
+plot_lscale_sample(sample, a, c)
+```
+
+## Case 7: $a \geq 1$ or $c \leq - \frac{1}{2a^2}$
+```{r}
+# Rejection sampling
+a = 1
+c = -10
+Nsim = 10^5
+res = rejection_sampler(a, c, Nsim)
+sample = res$sample
+acceptance_rate = res$ar
+
+# Acceptance rate
+cat('The acceptance rate is', acceptance_rate, '.\n')
+
+# Plot
+plot_lscale_sample(sample, a, c)
+```
+
+## Case 8: $0 < a < \frac{1}{2}, -\frac{1}{2a^2} \leq c < -\frac{1}{a}$
+```{r}
+# Rejection sampling
+a = 0.1
+c = -12
+Nsim = 10^5
+res = rejection_sampler(a, c, Nsim)
+sample = res$sample
+acceptance_rate = res$ar
+
+# Acceptance rate
+cat('The acceptance rate is', acceptance_rate, '.\n')
+
+# Plot
+plot_lscale_sample(sample, a, c)
+```
+
+The generation of truncated normal random variables is a critical aspect of our process that warrants attention. For instance, consider the scenario where $a = 2, c = 0.3$ and we aim to generate a random variable from the truncated normal distribution over the interval $[0,0.3]$. Different R packages, specifically **truncnorm** and **truncdist**, exhibit varied performance in this task, which can significantly impact the results of our rejection sampler. 
+```{r}
+a = 2
+c = 0.3
+sd = sqrt(0.5) / a
+sample1 = rtruncnorm(Nsim, a = 0, b = 0.3, mean = c, sd = sd)
+sample2 = rtrunc(Nsim, spec = 'norm', a = 0, b = 0.3, mean = c, sd = sd)
+hist(sample1, freq = FALSE)
+hist(sample2, freq = FALSE)
+```
+
+
