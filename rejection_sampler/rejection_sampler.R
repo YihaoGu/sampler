@@ -269,20 +269,21 @@ sample_from_case_7 = function(a, c){
   beta = a^2
   alpha = 2 * beta * c
   m = c^2
-  # mass_to_left = 2 / alpha^2 * (exp(alpha * c) * (alpha * c - 1) + 1)
-  # mass_to_right = 1 / (1 + m) * exp(- beta * m + alpha * c) / beta
-  # prob_to_left = mass_to_left / (mass_to_left + mass_to_right)
-  prod_alpha_c = alpha * c
-  if (prod_alpha_c > 1){
-    logint1 = log(2) - 2 * log(abs(alpha)) + prod_alpha_c + log(prod_alpha_c - 1) + log(1 + 1 / (exp(prod_alpha_c) / (prod_alpha_c - 1)))
-  }
-  else{
-    logint1 = log(2) - 2 * log(abs(alpha)) + log(exp(prod_alpha_c) * (prod_alpha_c - 1) + 1)
-  }
-  logint2 = -log(beta) - log(1 + m) - beta * m + alpha * c
-  logint = c(logint1, logint2) - max(logint1, logint2)
-  ints = exp(logint)
-  prob = ints[1] / sum(ints)
+  sqrt_m = abs(c)
+  mass_to_left = 2 / alpha^2 * (exp(alpha * sqrt_m) * (alpha * sqrt_m - 1) + 1)
+  mass_to_right = 1 / (1 + m) * exp(- beta * m + alpha * sqrt_m) / beta
+  prob = mass_to_left / (mass_to_left + mass_to_right)
+  # prod_alpha_c = alpha * abs(c)
+  # if (prod_alpha_c > 1){
+  #   logint1 = log(2) - 2 * log(abs(alpha)) + prod_alpha_c + log(prod_alpha_c - 1) + log(1 + 1 / (exp(prod_alpha_c) / (prod_alpha_c - 1)))
+  # }
+  # else{
+  #   logint1 = log(2) - 2 * log(abs(alpha)) + log(exp(prod_alpha_c) * (prod_alpha_c - 1) + 1)
+  # }
+  # logint2 = -log(beta) - log(1 + m) - beta * m + alpha * c
+  # logint = c(logint1, logint2) - max(logint1, logint2)
+  # ints = exp(logint)
+  # prob = ints[1] / sum(ints)
   u = runif(1)
  
   if (u < prob){
@@ -292,7 +293,7 @@ sample_from_case_7 = function(a, c){
   }
   else{
     rv = rexp(1, rate = beta) + m
-    logp = - log(1 + m) + alpha * c - beta * rv
+    logp = - log(1 + m) + alpha * sqrt_m - beta * rv
   }
   res = list('rv' = rv, 'logp' = logp)
   return(res)
