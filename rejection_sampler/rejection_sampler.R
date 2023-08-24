@@ -113,7 +113,7 @@ sample_from_case_1 = function(a, c){
     logp = log(rv) - log(1 + rv^2)
   }
   else{
-    rv = rtruncnorm(1, a = m, b = Inf, mean = c, sd = sd)
+    rv = rtrunc(1, spec = 'norm', a = m, b = Inf, mean = c, sd = sd)
     logp = - log(2) + log(a) - a^2 * (rv - c)^2
   }
   res = list('rv' = rv, 'logp' = logp)
@@ -148,15 +148,15 @@ sample_from_case_2 = function(a, c){
     logp = log(rv) - log(1 + rv^2) - 9 / 16 * a^2 * c^2
   }
   else if (u < probs[2]){
-    rv = rtruncnorm(1, a = m1, b = m2, mean = c, sd = sd)
+    rv = rtrunc(1, spec = 'norm', a = m1, b = m2, mean = c, sd = sd)
     logp = log(m1) - log(1 + m1^2) - a^2 * (rv - c)^2
   }
   else if (u < probs[3]){
-    rv = rtruncnorm(1, a = m2, b = m3, mean = c, sd = sd)
+    rv = rtrunc(1, spec = 'norm', a = m2, b = m3, mean = c, sd = sd)
     logp = log(m2) - log(1 + m2^2) - a^2 * (rv - c)^2
   }
   else{
-    rv = rtruncnorm(1, a = m3, b = Inf, mean = c, sd = sd)
+    rv = rtrunc(1, spec = 'norm', a = m3, b = Inf, mean = c, sd = sd)
     logp = log(m3) - log(1 + m3^2) - a^2 * (rv - c)^2
   }
   res = list('rv' = rv, 'logp' = logp)
@@ -177,11 +177,11 @@ sample_from_case_3 = function(a, c){
   u = runif(1)
   
   if (u < prob){
-    rv = rtruncnorm(1, a = 0, b = m, mean = c, sd = sd)
+    rv = rtrunc(1, spec = 'norm', a = 0, b = m, mean = c, sd = sd)
     logp = -log(2) - a^2 * (rv - c)^2
   }
   else{
-    rv = rtruncnorm(1, a = m, b = Inf, mean = c, sd = sd)
+    rv = rtrunc(1, spec = 'norm', a = m, b = Inf, mean = c, sd = sd)
     logp = log(m) - log(1 + m^2) - a^2 * (rv - c)^2
   }
   res = list('rv' = rv, 'logp' = logp)
@@ -193,7 +193,7 @@ sample_from_case_3 = function(a, c){
 
 sample_from_case_4 = function(a, c){
   sd = sqrt(0.5) / a
-  rv = rtruncnorm(1, a = 0, b = Inf, mean = c, sd = sd)
+  rv = rtrunc(1, spec = 'norm', a = 0, b = Inf, mean = c, sd = sd)
   logp = -log(2) - a^2 * (rv - c)^2
   res = list('rv' = rv, 'logp' = logp)
   return(res)
@@ -211,7 +211,6 @@ sample_from_case_5 = function(a, c){
    u = runif(1)
    
    if (u <= prob){
-     # rv = rtruncnorm(1, a = 0, b = c, mean = c, sd = sd)
      rv = rtrunc(1, spec = 'norm', a = 0, b = c, mean = c, sd = sd)
      logp = log(c) - log(1 + c^2) - a^2 * (rv - c)^2
    }
@@ -220,7 +219,6 @@ sample_from_case_5 = function(a, c){
      if (v <= (1 / (1 + a * c * sqrt(pi)))){
        w = runif(1)
        rv = sqrt(-2 * log(1 - w)) * sd + c
-       # rv = rchi(1, 2) * sd + c
      }
      else{
        rv = rtrunc(1, spec = 'norm', a = c, b = Inf, mean = c, sd = sd)
@@ -250,7 +248,7 @@ sample_from_case_6 = function(a, c){
    logp = log(rv) - log(1 + rv^2) - a^2 * c^2
   }
   else{
-    rv = rtruncnorm(1, a = m, b = Inf, mean = c, sd = sd)
+    rv = rtrunc(1, spec = 'norm', a = m, b = Inf, mean = c, sd = sd)
     logp = - log(2) + log(a) - a^2 * (rv - c)^2
   }
   
@@ -273,17 +271,6 @@ sample_from_case_7 = function(a, c){
   mass_to_left = 2 / alpha^2 * (exp(alpha * sqrt_m) * (alpha * sqrt_m - 1) + 1)
   mass_to_right = 1 / (1 + m) * exp(- beta * m + alpha * sqrt_m) / beta
   prob = mass_to_left / (mass_to_left + mass_to_right)
-  # prod_alpha_c = alpha * abs(c)
-  # if (prod_alpha_c > 1){
-  #   logint1 = log(2) - 2 * log(abs(alpha)) + prod_alpha_c + log(prod_alpha_c - 1) + log(1 + 1 / (exp(prod_alpha_c) / (prod_alpha_c - 1)))
-  # }
-  # else{
-  #   logint1 = log(2) - 2 * log(abs(alpha)) + log(exp(prod_alpha_c) * (prod_alpha_c - 1) + 1)
-  # }
-  # logint2 = -log(beta) - log(1 + m) - beta * m + alpha * c
-  # logint = c(logint1, logint2) - max(logint1, logint2)
-  # ints = exp(logint)
-  # prob = ints[1] / sum(ints)
   u = runif(1)
  
   if (u < prob){
@@ -335,7 +322,7 @@ sample_from_case_8 = function(a, c){
     logp = - log(1 + rv^2) + log(m1) - a^2 * c^2
   }
   else{
-    rv = rtruncnorm(1, a = m2, b = Inf, mean = c, sd = sd)
+    rv = rtrunc(1, spec = 'norm', a = m2, b = Inf, mean = c, sd = sd)
     logp = log(m2) - log(1 + m2^2) - a^2 * (rv - c)^2
   }
   
