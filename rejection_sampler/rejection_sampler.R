@@ -49,14 +49,11 @@ classifier = function(a, c){
   else if ((a >= 1) && (c >= 0) && (c < 0.5)){
     case = 5
   }
-  else if ((a < 1) && (c >= max(-1/a, -0.5/a^2))){
+  else if ((a < 1) && (c >= -0.5/a^2)){
     case = 6
   }
-  else if ((a >= 1) || (c <= - 0.5 / a^2)){
+  else {
     case = 7
-  }
-  else{
-    case = 8
   }
   return(case)
 }
@@ -69,8 +66,7 @@ choose_sampler = function(case){
                   sample_from_case_4,
                   sample_from_case_5,
                   sample_from_case_6,
-                  sample_from_case_7,
-                  sample_from_case_8)
+                  sample_from_case_7)
   sampler = sampler_set[[case]]
   return(sampler)
 }
@@ -228,28 +224,46 @@ sample_from_case_5 = function(a, c){
    
    res = list('rv' = rv, 'logp' = logp)
    return(res)
- }
- 
-# Case 6: 0 < a < 1, max{-1/a, 0.5/a^2} <= c < 0
-# g(x) = x / (1 + x^2) * exp(-a^2 * c^2)    if 0 <= x < m,
-#        a / 2 * exp(-a^2 * (x - c)^2)      if x >= m,
-# where m = (1 + sqrt(1 - a^2)) / a.
+}
+
+# Case 6: 0 < a < 0.5, -0.5 / a^2 <= c < -1 / a
+# g(x) = x / (1 + x^2) * exp(-a^2 * c^2)    if x < m1,
+#        1 / (1 + x^2) * m * exp(-a^2 * (m - c)^2)  if m1 <= x < m2,
+#        m2 / (1 + m2^2) * exp(-a^2 * (x - c)^2)    if x >= m2,
+# where m = (a * c + sqrt(a^2 * c^2 + 2)) / a / 2, 
+#       m1 = m * exp(- a^2 * (m^2 - 2 * m * c)), 
+#       m2 = max(c + 0.5 / a^2, 1).
 
 sample_from_case_6 = function(a, c){
-  m = (1 + sqrt(1 - a^2)) / a
-  sd = sqrt(0.5) / a
-  mass_to_left = 0.5 * log(1 + m^2) * exp(-a^2 * c^2)
-  mass_to_right = pnorm(m, mean = c, sd = sd, lower.tail = FALSE) * sqrt(pi) / 2
-  prob_to_left = mass_to_left / (mass_to_left + mass_to_right)
   
-  if (prob_to_left > runif(1)){
-   v = runif(1, min = 0, max = mass_to_left)
-   rv = sqrt(exp(2*v) - 1)
-   logp = log(rv) - log(1 + rv^2) - a^2 * c^2
+  m = (a * c + sqrt(a^2 * c^2 + 2)) / a / 2
+  m1 = m * exp(- a^2 * (m^2 - 2 * m * c))
+  m2 = max(c + 0.5 / a^2, 1)
+  sd = sqrt(0.5) / a
+  
+  logint1 = log(0.5) + log(log(1 + m1^2))
+  logint2 = log((atan(m2) - atan(m1))) + log(m1)
+  logint3 = pnorm(m2, mean = c, sd = sd, log = TRUE, lower.tail = FALSE) + 0.5* log(pi) - log(a) + log(m2) - log(1+m2^2) + a^2 * c^2
+  logint = c(logint1, logint2, logint3) - max(logint1, logint2, logint3)
+  ints = exp(logint)
+  prob = ints / sum(ints)
+  u1 = prob[1]
+  u2 = prob[1] + prob[2]
+  u = runif(1)
+  
+  if (u < u1){
+    v = runif(1, min = 0, max = log(1 + m1^2))
+    rv = sqrt(exp(v) - 1)
+    logp = log(rv) - log(1 + rv^2) - a^2 * c^2
+  }
+  else if (u < u2){
+    v = runif(1, min = atan(m1), max = atan(m2))
+    rv = tan(v)
+    logp = - log(1 + rv^2) + log(m1) - a^2 * c^2
   }
   else{
-    rv = rtrunc(1, spec = 'norm', a = m, b = Inf, mean = c, sd = sd)
-    logp = - log(2) + log(a) - a^2 * (rv - c)^2
+    rv = rtrunc(1, spec = 'norm', a = m2, b = Inf, mean = c, sd = sd)
+    logp = log(m2) - log(1 + m2^2) - a^2 * (rv - c)^2
   }
   
   res = list('rv' = rv, 'logp' = logp)
@@ -285,47 +299,4 @@ sample_from_case_7 = function(a, c){
   res = list('rv' = rv, 'logp' = logp)
   return(res)
 }
- 
-# Case 8: 0 < a < 0.5, -0.5 / a^2 <= c < -1 / a
-# g(x) = x / (1 + x^2) * exp(-a^2 * c^2)    if x < m1,
-#        1 / (1 + x^2) * m * exp(-a^2 * (m - c)^2)  if m1 <= x < m2,
-#        m2 / (1 + m2^2) * exp(-a^2 * (x - c)^2)    if x >= m2,
-# where m = (a * c + sqrt(a^2 * c^2 + 2)) / a / 2, 
-#       m1 = m * exp(- a^2 * (m^2 - 2 * m * c)), 
-#       m2 = max(c + 0.5 / a^2, 1).
 
-sample_from_case_8 = function(a, c){
-   
-  m = (a * c + sqrt(a^2 * c^2 + 2)) / a / 2
-  m1 = m * exp(- a^2 * (m^2 - 2 * m * c))
-  m2 = max(c + 0.5 / a^2, 1)
-  sd = sqrt(0.5) / a
-   
-  logint1 = log(0.5) + log(log(1 + m1^2))
-  logint2 = log((atan(m2) - atan(m1))) + log(m1)
-  logint3 = pnorm(m2, mean = c, sd = sd, log = TRUE, lower.tail = FALSE) + 0.5* log(pi) - log(a) + log(m2) - log(1+m2^2) + a^2 * c^2
-  logint = c(logint1, logint2, logint3) - max(logint1, logint2, logint3)
-  ints = exp(logint)
-  prob = ints / sum(ints)
-  u1 = prob[1]
-  u2 = prob[1] + prob[2]
-  u = runif(1)
-   
-  if (u < u1){
-    v = runif(1, min = 0, max = log(1 + m1^2))
-    rv = sqrt(exp(v) - 1)
-    logp = log(rv) - log(1 + rv^2) - a^2 * c^2
-  }
-  else if (u < u2){
-    v = runif(1, min = atan(m1), max = atan(m2))
-    rv = tan(v)
-    logp = - log(1 + rv^2) + log(m1) - a^2 * c^2
-  }
-  else{
-    rv = rtrunc(1, spec = 'norm', a = m2, b = Inf, mean = c, sd = sd)
-    logp = log(m2) - log(1 + m2^2) - a^2 * (rv - c)^2
-  }
-  
-  res = list('rv' = rv, 'logp' = logp)
-  return(res)
-}
