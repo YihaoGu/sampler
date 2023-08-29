@@ -50,3 +50,9 @@ plot_lscale_sample <- function(lscale_sample, beta, alpha){
     col = c('blue', 'orange')
   )
 }
+
+### Get acceptance rate via simulation
+get_acceptance_rate = function(a, c){
+  res = rejection_sampler(a, c, Nsim = 10^4)
+  res$ar
+}
