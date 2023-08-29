@@ -103,6 +103,33 @@ ggplot(df, aes(x=c, y=acceptance_rate, color=a, group=a)) +
   scale_color_gradient(low="#72EDF2", high="#736EFE")
 ```
 
+```{r}
+# zoom in
+# Check acceptance rate via simulation
+aseq <- seq(1e-5, 1e-2, length.out = 20)
+c = seq(1, 5, length.out = 20)
+
+# Create a dataframe
+df2 <- map_df(aseq, ~{
+  c_values = seq(1 / (.x), 5 / (.x), length.out = 20)
+  data.frame(
+    a = .x,
+    c = c,
+    acceptance_rate = sapply(c_values, get_acceptance_rate, a = .x)
+  )
+})
+
+# Plot
+ggplot(df2, aes(x=c, y=acceptance_rate, color=a, group=a)) + 
+  geom_line() +
+  labs(x="a * c", y="Acceptance rate", color="a value") +
+  theme_minimal() +
+  scale_y_continuous(limits = c(0, 1)) +
+  scale_color_gradient(low="#72EDF2", high="#736EFE")
+
+```
+
+
 
 ## Case 3: $a \geq 0.25, c \geq \max(1,\frac{1}{a})$
 ```{r}
@@ -273,6 +300,7 @@ ggplot(df, aes(x=c, y=acceptance_rate, color=a, group=a)) +
 ```
 
 ```{r}
+# zoom in
 # Check acceptance rate via simulation
 aseq <- seq(1e-5, 1e-2, length.out = 20)
 c = seq(1e-3, 1, length.out = 20)
