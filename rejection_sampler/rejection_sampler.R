@@ -262,7 +262,8 @@ sample_from_case_6 = function(a, c){
     logp = - log(1 + rv^2) + log(m1) - a^2 * c^2
   }
   else{
-    rv = rtrunc(1, spec = 'norm', a = m2, b = Inf, mean = c, sd = sd)
+    # rv = rtrunc(1, spec = 'norm', a = m2, b = Inf, mean = c, sd = sd)
+    rv = rtruncnorm(1, a = m2, b = Inf, mean = c, sd = sd)
     logp = log(m2) - log(1 + m2^2) - a^2 * (rv - c)^2
   }
   
