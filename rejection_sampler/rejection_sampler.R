@@ -117,19 +117,18 @@ sample_from_case_1 = function(a, c){
 }
 
 # Case 2: 0 < a < 0.25, c >= 1 / a
-# g(x) = x / (1 + x^2) * exp(-9 / 16 * a^2 * c^2) if 0 <=x < m1,
+# g(x) = x / (1 + x^2) * exp(- a^2 * (m1 - c)^2) if 0 <=x < m1,
 #        m1 / (1 + m1^2) * exp(-a^2 * (x - c)^2)  if m1 <= x < m2,
 #        m2 / (1 + m2^2) * exp(-a^2 * (x - c)^2)  if m2 <= x < m3,
 #        m3 / (1 + m3^2) * exp(-a^2 * (x - c)^2)  if x >= m3,
 # where m1 = c / 4, m2 = c / 2, m3 = c.
 
 sample_from_case_2 = function(a, c){
-  m1 = c / 4
-  m2 = c / 2
+  m1 = max(1, c / 16)
+  m2 = c / 4
   m3 = c
   sd = sqrt(0.5) / a
-  # int1 = 0.5 * log(1 + m1^2)* exp(-9 / 16 * a^2 * c^2)
-  logint1 = -log(2) + log(log(1 + m1^2)) - 9 / 16 * a^2 * c^2
+  logint1 = -log(2) + log(log(1 + m1^2)) - a^2 * (m1 - c)^2
   int1 = exp(logint1)
   int2 = (pnorm(m2, mean = c, sd = sd) - pnorm(m1, mean = c, sd = sd)) * sqrt(pi) / a * m1 / (1 + m1^2)
   int3 = (pnorm(m3, mean = c, sd = sd) - pnorm(m2, mean = c, sd = sd)) * sqrt(pi) / a * m2 / (1 + m2^2)
@@ -141,7 +140,7 @@ sample_from_case_2 = function(a, c){
   if (u < probs[1]){
     v = runif(1, min = 0, max = 0.5 * log(1 + m1^2))
     rv = sqrt(exp(2*v) - 1)
-    logp = log(rv) - log(1 + rv^2) - 9 / 16 * a^2 * c^2
+    logp = log(rv) - log(1 + rv^2) - a^2 * (m1 - c)^2
   }
   else if (u < probs[2]){
     rv = rtrunc(1, spec = 'norm', a = m1, b = m2, mean = c, sd = sd)
@@ -272,7 +271,7 @@ sample_from_case_6 = function(a, c){
 }
  
 # Case 7: 0 < a <= 1, c < -0.5 / a^2, or a >= 1
-# beta = alpha^2, alpha = 2 * a^2 * c, alpha^2 / beta ^2 / 4 = c^2
+# beta = a^2, alpha = 2 * a^2 * c, alpha^2 / beta ^2 / 4 = c^2
 # transformation: x <- x^2
 # f(x) = 1 / (1 + x) * exp(- beta * x + alpha * sqrt(x))
 # g(x) = exp(alpha * sqrt(x))           if x < c^2

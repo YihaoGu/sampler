@@ -16,8 +16,8 @@ get_acceptance_rate = function(a, b) {
   mu = b
   std = 1 / (a * sqrt(2))
   
-  m1 = max(1, b / 4)
-  m2 = max(1, b / 2)
+  m1 = max(1, b / 16)
+  m2 = b / 4
   m3 = b
   
   # breaking integrals into more parts helps numerical stability,
@@ -36,7 +36,7 @@ get_acceptance_rate = function(a, b) {
   f_area = f_area1 + f_area2 + f_area3 + f_area4
   stopifnot(f_area > 1e-10) # warning for underflow
   
-  zero_to_m1 = 0.5 * log(1 + m1^2) * exp(-a^2 * (0.75 * b)^2)
+  zero_to_m1 = 0.5 * log(1 + m1^2) * exp(-a^2 * (m1 - b)^2)
   m1_to_m2 = (pnorm(m2, mean = mu, sd = std) -  pnorm(m1, mean = mu, sd = std)) / a * (sqrt(pi)) * m1 / (1 + m1 ^ 2)
   m2_to_m3 = (pnorm(m3, mean = mu, sd = std) - pnorm(m2, mean = mu, sd = std)) / a * (sqrt(pi)) * m2 / (1 + m2 ^ 2)
   m3_to_inf = (1 - pnorm(m3, mean = mu, sd = std)) / a * (sqrt(pi)) * m3 / (1 + m3 ^ 2)
