@@ -1,7 +1,12 @@
 ## Helper functions for the test file
 # Compute the target pdf
 compute_target_pdf <- function(x, a, c, normalized = TRUE) {
-  logp <- - a^2 * (sqrt(exp(2 * x) - 1) - c)^2
+  if (c >= 0){
+    logp <- - a^2 * (sqrt(exp(2 * x) - 1) - c)^2
+  }
+  else{
+    logp <- - a^2 * (exp(2 * x) - 1) + 2 * a^2 * c * (sqrt(exp(2 * x) - 1))
+  }
   logp <- logp - max(logp)
   # Avoid numerical under-flow when exponentiating.
   pdf <- exp(logp)

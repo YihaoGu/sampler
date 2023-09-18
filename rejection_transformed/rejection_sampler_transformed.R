@@ -17,11 +17,16 @@ rejection_sampler_transformed = function(a, c, Nsim){
       res = sampler(a, c)
       rv = res$rv
       bound_logp = res$logp
-      target_logp = -a^2 * (sqrt(exp(2 * rv) - 1) - c)^2
-      accept_prob = exp(target_logp - bound_logp)
-      if (accept_prob > 1){
-        cat(accept_prob, '\n')
+      if (c >= 0){
+        target_logp = -a^2 * (sqrt(exp(2 * rv) - 1) - c)^2
       }
+      else{
+        target_logp = -a^2 * (exp(2 * rv) - 1) + 2 * a^2 * c * sqrt(exp(2 * rv) - 1)
+      }
+      accept_prob = exp(target_logp - bound_logp)
+      # if (accept_prob > 1){
+      #   cat(accept_prob, '\n')
+      # }
       accepted = accept_prob > runif(1)
     }
     RV[idx] = rv
@@ -37,19 +42,24 @@ classifier = function(a, c){
   if (a == 0){
     stop('a cannot be 0!')
   }
-  else if (a^2 * c^2 > log(4)){
-    if (c <= 3 * sqrt(3)){
-      case = 1
+  if (c >= 0){
+    if (a^2 * c^2 > log(4)){
+      if (c <= 3 * sqrt(3)){
+        case = 1
+      }
+      else{
+        case = 2
+      }
+    }
+    else if (a^2 * c^2 > log(2)){
+      case = 3
     }
     else{
-      case = 2
+      case = 4
     }
   }
-  else if (a^2 * c^2 > log(2)){
-    case = 3
-  }
   else{
-    case = 4
+    case = 5
   }
   return(case)
 }
@@ -59,7 +69,8 @@ choose_sampler = function(case){
   sampler_set = c(sample_from_case_1, 
                   sample_from_case_2,
                   sample_from_case_3,
-                  sample_from_case_4)
+                  sample_from_case_4,
+                  sample_from_case_5)
   sampler = sampler_set[[case]]
   return(sampler)
 }
@@ -172,10 +183,23 @@ sample_from_case_2 = function(a, c){
 }
 
 compute_inflection_point = function(c){
-  theta = acos(3 * sqrt(3) / c)
-  t1 = cos(theta / 3) / sqrt(3)
-  t2 = sin(theta / 3)
-  r = c(t1 + t2, t1 - t2)
+  if (c > 3 * sqrt(3)){
+    theta = acos(3 * sqrt(3) / c)
+    t1 = cos(theta / 3) / sqrt(3)
+    t2 = sin(theta / 3)
+    r = c(t1 + t2, t1 - t2)
+  }
+  else if (c < - 3 * sqrt(3)){
+    theta = acos(3 * sqrt(3) / c)
+    t1 = cos(theta / 3) / sqrt(3)
+    t2 = sin(theta / 3)
+    r = t1 + t2
+  }
+  else{
+    c_reciprocal =  1 / c
+    delta = sqrt(c_reciprocal^2 - 1 / 27)
+    r = (- c_reciprocal + delta)^(1/3) + (- c_reciprocal - delta)^(1/3)
+  }
   return(1 / r)
 }
 
@@ -237,6 +261,56 @@ sample_from_case_4 = function(a, c){
   else{
     rv = m[2] + rexp(1, rate = d)
     logp = -log(4) - d * (rv - m[2])
+  }
+  res = list('rv' = rv, 'logp' = logp)
+  return(res)
+}
+
+# Case 5
+sample_from_case_5 = function(a, c){
+  m0 = c(c + sqrt(a^2 * c^2 + log(2)) / a, c + sqrt(a^2 * c^2 + log(4)) / a)
+  r = compute_inflection_point(c)
+  m0[3] = max(m0[2], r)
+  m = log(1 + m0^2) / 2
+  
+  int1 = m[1]
+  int2 = (m[2] - m[1]) / 2
+  if (r <= m0[2]){
+    int3 = 0
+    d1 = 2 * a * sqrt(a^2 * c^2 + log(4)) * (1 + m0[2]^2) / m0[2]
+    int4 = 0.25 / d1
+  }
+  else{
+    d0 = (a^2 * (m0[3]^2 - m0[2]^2) - 2 * a^2 * c * (m0[3] - m0[2])) / (m[3] - m[2])
+    int3 = 0.25 / d0 * (1 - exp(d0 * (m[2] - m[3])))
+    d1 = 2 * a^2 * (m0[3] - c) * (1 + m0[3]^2) / m0[3]
+    int4 = exp(-a^2 * m0[3]^2 + 2 * a^2 * c * m0[3]) / d1
+  }
+  ints = c(int1, int2, int3, int4)
+  probs = cumsum(ints / sum(ints))
+  u = runif(1)
+  
+  if (u < probs[1]){
+    rv = runif(1, 0, m[1])
+    logp = 0
+  }
+  else if (u < probs[2]){
+    rv = runif(1, m[1], m[2])
+    logp = -log(2)
+  }
+  else if (u < probs[3]){
+    rv = runif(1, 0, 1 - exp(d0 * (m[2] - m[3])))
+    rv = m[2] - log(1 - rv) / d0
+    logp = -log(4) - d0 * (rv - m[2])
+  }
+  else{
+    rv = m[3] + rexp(1, rate = d1)
+    if (m0[3] <= m0[2]){
+      logp = -log(4) - d1 * (rv - m[3])
+    }
+    else{
+      logp = -a^2 * m0[3]^2 + 2 * a^2 * c * m0[3] - d1 * (rv - m[3])
+    }
   }
   res = list('rv' = rv, 'logp' = logp)
   return(res)
