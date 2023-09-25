@@ -28,7 +28,7 @@ trapz <- function(f, x) {
 plot_lscale_sample <- function(lscale_sample, beta, alpha){
   # Restrict the plot range; otherwise, the empirical 
   # distribution of a heavy-tailed target is unstable.
-  max_quantile <- .99
+  max_quantile <- 1
   upper_xlim <- quantile(lscale_sample, max_quantile)
   breaks <- seq(0, upper_xlim, length.out = 100)
   
@@ -55,7 +55,7 @@ plot_lscale_sample <- function(lscale_sample, beta, alpha){
 }
 
 ### Get acceptance rate via simulation
-get_acceptance_rate = function(a, c){
-  res = rejection_sampler_transformed(a, c, Nsim = 10^4)
+get_acceptance_rate = function(a, c, q = 0.5, k1 = 2, k2 = 1){
+  res = rejection_sampler_transformed(a, c, Nsim = 10^4, q, k1, k2)
   res$ar
 }
