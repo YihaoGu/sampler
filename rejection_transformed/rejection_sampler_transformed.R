@@ -111,6 +111,12 @@ sample_from_c_positive = function(a, c, q, k1, k2){
       int_concave_left = densities_constant[1] / d_concave_left * coef_concave_left
     }
     else{
+      
+      if (r[1] >= m[1]){
+        r[1] = m[1]
+        r_transformed[1] = m_transformed[1]
+      }
+      
       # concave part
       tmp = c - r_transformed[1]
       d_concave_left = 2 * a_sq * tmp * (1 / r_transformed[1] + r_transformed[1])
@@ -120,13 +126,15 @@ sample_from_c_positive = function(a, c, q, k1, k2){
       int_concave_left = density_concave_left / d_concave_left * coef_concave_left
       
       # convex part
-      m_convex = seq(r[1], min(r[2], m[1]), length.out = k2 + 1)
-      tmp = sqrt(exp(2 * m_convex) - 1) - c
-      log_densities_convex = -a_sq * tmp^2
-      densities_convex = exp(log_densities_convex)
-      d_convex = (log_densities_convex[2:(k2+1)] - log_densities_convex[1:k2]) / (m_convex[2:(k2+1)] - m_convex[1:k2])
-      coef = 1 - exp(d_convex * (m_convex[1:k2] - m_convex[2:(k2+1)]))
-      int_convex = densities_convex[2:(k2+1)] / d_convex * coef
+      if (min(r[2], m[1]) != r[1]){
+        m_convex = seq(r[1], min(r[2], m[1]), length.out = k2 + 1)
+        tmp = sqrt(exp(2 * m_convex) - 1) - c
+        log_densities_convex = -a_sq * tmp^2
+        densities_convex = exp(log_densities_convex)
+        d_convex = (log_densities_convex[2:(k2+1)] - log_densities_convex[1:k2]) / (m_convex[2:(k2+1)] - m_convex[1:k2])
+        coef = 1 - exp(d_convex * (m_convex[1:k2] - m_convex[2:(k2+1)]))
+        int_convex = densities_convex[2:(k2+1)] / d_convex * coef
+      }
       
       # concave part
       if (r[2] < m[1]){
@@ -198,14 +206,17 @@ sample_from_c_positive = function(a, c, q, k1, k2){
 sample_from_c_negative = function(a, c, q, k1, k2){
   
   # Compute and store repeatedly used constants.
-  neg_log_q = - log(q)
+  log_q = log(q)
   a_sq = a^2
   
   # Compute the breakpoints determined by constant proposal densities: 
   # Suppose m are the breakpoints,
   # let m_transformed = sqrt(exp(2 * m) - 1), and we have
   # exp(-a^2 * m_transformed^2 + 2 * a^2 * c * m_transformed) = 1 / 2 ^ (0:k1).
-  m_transformed = sqrt(c^2 + neg_log_q / a_sq * (0:k1)) + c
+  m_transformed = sqrt(c^2 - log_q / a_sq * (0:k1)) + c
+  # if (m_transformed[k1+1] == 0){
+  #   m_transformed = - (0:k1) * neg_log_q / 2 / a_sq / c
+  # }
   m = log(1 + m_transformed^2) / 2
   
   # Now we compute the inflection points where the target density
@@ -222,7 +233,7 @@ sample_from_c_negative = function(a, c, q, k1, k2){
   }
   
   # Compute the integrals of these constant proposal densities.
-  log_densities = - neg_log_q * (0:k1)
+  log_densities = log_q * (0:k1)
   densities = exp(log_densities)
   int_constant = densities[1:k1] * (m[2:(k1+1)] - m[1:k1])
   
