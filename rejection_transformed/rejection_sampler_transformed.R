@@ -14,8 +14,8 @@
 rejection_sampler_transformed = function(a, c, Nsim, q = 0.5, k1 = 2, k2 = 1){
   a = abs(a)
 
-  RV = rep(0, Nsim)
-  AR = rep(0, Nsim)
+  RV = rep(0, Nsim) # record random variable
+  AR = rep(0, Nsim) # record the number of iterations needed to generate a random variable
   for (idx in 1 : Nsim){
     accepted = FALSE
     i = 0
@@ -47,7 +47,6 @@ rejection_sampler_transformed = function(a, c, Nsim, q = 0.5, k1 = 2, k2 = 1){
 }
 
 # Case 1: c positive
-## c positive case
 # target density: exp(-a^2 * (sqrt(exp(2*x) - 1) - c)^2)
 # q: min f(x) / max f(x) on each constant piece
 # k1: use 1, q, q^2, ..., q^(k1-1) as constant proposal
@@ -94,7 +93,6 @@ sample_from_c_positive = function(a, c, q, k1, k2){
   # exponential proposal to upper bound it.
   d_concave_opposite = 2 * a_sq * (1 + m_transformed[k0+k1+1]^2) * (1 - c / m_transformed[k0+k1+1])
   int_concave_right = densities_constant[k0+k1+1] / d_concave_opposite
-  # cat(d_concave_opposite,'\n')
   
   # Now we start to deal with the left "tail" if r_computed == TRUE.
   int_concave_left = 0
@@ -105,19 +103,18 @@ sample_from_c_positive = function(a, c, q, k1, k2){
     r_transformed = compute_inflection_point(c)
     r = log(1 + r_transformed^2) / 2
     
-    if (length(r) == 0){
+    if ((length(r) == 0) || (r[1] >= m[1])){ 
+      # we only have a log-concave piece on the left of the mode.
       d_concave_left = 2 * a * sqrt(abs(log_densities_constant[1])) * (1 / m_transformed[1] + m_transformed[1])
       coef_concave_left = 1 - exp(- d_concave_left * m[1])
       int_concave_left = densities_constant[1] / d_concave_left * coef_concave_left
     }
     else{
       
-      if (r[1] >= m[1]){
-        r[1] = m[1]
-        r_transformed[1] = m_transformed[1]
-      }
+      # we first have a log-concave piece on [0, r[1]], followed a log-convex piece, 
+      # and perhaps another log-concave piece.
       
-      # concave part
+      # the leftmost log-concave part
       tmp = c - r_transformed[1]
       d_concave_left = 2 * a_sq * tmp * (1 / r_transformed[1] + r_transformed[1])
       log_density_concave_left = - a_sq * tmp^2
@@ -125,18 +122,16 @@ sample_from_c_positive = function(a, c, q, k1, k2){
       coef_concave_left = 1 - exp(- d_concave_left * r[1])
       int_concave_left = density_concave_left / d_concave_left * coef_concave_left
       
-      # convex part
-      if (min(r[2], m[1]) != r[1]){
-        m_convex = seq(r[1], min(r[2], m[1]), length.out = k2 + 1)
-        tmp = sqrt(exp(2 * m_convex) - 1) - c
-        log_densities_convex = -a_sq * tmp^2
-        densities_convex = exp(log_densities_convex)
-        d_convex = (log_densities_convex[2:(k2+1)] - log_densities_convex[1:k2]) / (m_convex[2:(k2+1)] - m_convex[1:k2])
-        coef = 1 - exp(d_convex * (m_convex[1:k2] - m_convex[2:(k2+1)]))
-        int_convex = densities_convex[2:(k2+1)] / d_convex * coef
-      }
+      # the log-convex part
+      m_convex = seq(r[1], min(r[2], m[1]), length.out = k2 + 1)
+      tmp = sqrt(exp(2 * m_convex) - 1) - c
+      log_densities_convex = -a_sq * tmp^2
+      densities_convex = exp(log_densities_convex)
+      d_convex = (log_densities_convex[2:(k2+1)] - log_densities_convex[1:k2]) / (m_convex[2:(k2+1)] - m_convex[1:k2])
+      coef = 1 - exp(d_convex * (m_convex[1:k2] - m_convex[2:(k2+1)]))
+      int_convex = densities_convex[2:(k2+1)] / d_convex * coef
       
-      # concave part
+      # perhaps another log-concave part
       if (r[2] < m[1]){
         d_concave_middle = 2 * a * sqrt(abs(log_densities_constant[1])) * (1 / m_transformed[1] + m_transformed[1])
         coef_concave_middle = 1 - exp(d_concave_middle * (r[2] - m[1]))
@@ -148,15 +143,14 @@ sample_from_c_positive = function(a, c, q, k1, k2){
   # Concatenate all the pieces.
   ints = c(int_concave_left, int_convex, int_concave_middle, int_constant, int_concave_right)
   probs = ints / sum(ints)
-  # cat(int_concave_left,'\n', int_convex,'\n',int_concave_middle,'\n',int_constant,'\n',int_concave_right,'\n')
-  
+
   # Determine from which piece we sample from.
   piece = sample(length(probs), 1, prob = probs) # length(probs) = 1 + k2 + 1 + k0 + k1 + 1
   
   # Sample from the chosen piece and compute the corresponding log density.
   if (piece == 1){
     rv = runif(1, 0, coef_concave_left)
-    if (length(r) == 0){
+    if ((length(r) == 0) || (r[1] >= m[1])){
       rv = m[1] + log(1 - rv) / d_concave_left
       logp = log_densities_constant[1] + d_concave_left * (rv - m[1])
     }
@@ -197,7 +191,6 @@ sample_from_c_positive = function(a, c, q, k1, k2){
 }
 
 # Case 2: c negative
-## c negative case
 # target density: exp(-a^2 * (exp(2*x) - 1) + 2 * a^2 * c * sqrt(exp(2*x) - 1))
 # q: min f(x) / max f(x) on each constant piece
 # k1: use 1, q, q^2, ..., q^(k1-1) as constant proposal
@@ -214,9 +207,12 @@ sample_from_c_negative = function(a, c, q, k1, k2){
   # let m_transformed = sqrt(exp(2 * m) - 1), and we have
   # exp(-a^2 * m_transformed^2 + 2 * a^2 * c * m_transformed) = 1 / 2 ^ (0:k1).
   m_transformed = sqrt(c^2 - log_q / a_sq * (0:k1)) + c
+  
+  # if underflow occurs, you can try using talyor expansion to approximate these points:
   # if (m_transformed[k1+1] == 0){
   #   m_transformed = - (0:k1) * neg_log_q / 2 / a_sq / c
   # }
+  
   m = log(1 + m_transformed^2) / 2
   
   # Now we compute the inflection points where the target density
@@ -238,18 +234,18 @@ sample_from_c_negative = function(a, c, q, k1, k2){
   int_constant = densities[1:k1] * (m[2:(k1+1)] - m[1:k1])
   
   # If r is not computed, we only need to compute the last exponential piece;
-  # otherwise, we need to initialize on both the convex and concave intervals.
+  # otherwise, we need to initialize on both the log-convex and log-concave intervals.
   # Note that we use the opposite values of the derivatives here.
   if (! r_computed){
-    # convex part
+    # log-convex part
     int_convex = rep(0, k2)
     
-    # concave part
+    # log-concave part
     d_concave_opposite = 2 * a_sq * (1 + m_transformed[k1+1]^2) * (1 - c / m_transformed[k1+1])
     int_concave = densities[k1+1] / d_concave_opposite
   }
   else{
-    # convex part
+    # log-convex part
     m_convex = seq(m[k1+1], r, length.out = k2 + 1)
     tmp = exp(2 * m_convex) - 1
     log_densities_convex = - a_sq * tmp + 2 * a_sq * c * sqrt(tmp)
@@ -258,7 +254,7 @@ sample_from_c_negative = function(a, c, q, k1, k2){
     coef = 1 - exp(d_convex_opposite * (m_convex[1:k2] - m_convex[2:(k2+1)]))
     int_convex = densities_convex[1:k2] / d_convex_opposite * coef
     
-    # concave part
+    # log-concave part
     d_concave_opposite = 2 * a_sq * (1 + r_transformed_sq) * (1 - c / r_transformed)
     int_concave = densities_convex[k2+1] / d_concave_opposite
   }
