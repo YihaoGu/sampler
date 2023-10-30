@@ -6,4 +6,4 @@ where $a > 0, c \in \mathbb{R}$.
 
 The modified ziggurat algorithm can be found [here](rejection_transformed/rejection_sampler_transformed.R). This implementation leverages the transformed target distribution
 $$\pi(x) \propto \exp \left(-a^2 \left( \sqrt{e^{2x}-1} - c\right)^2\right),$$
-where $x = \frac{1}{2}\log \left(1+\eta \right)^2$.
+where $x = \frac{1}{2}\log \left(1+\eta^2 \right)$.
