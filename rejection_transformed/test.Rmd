@@ -19,11 +19,16 @@ library('purrr')
 
 ```{r}
 # Rejection sampling
-a = 1
-# c = sqrt(log(4)) / a * 2
-c = 20
-Nsim = 10^5
-res = rejection_sampler_transformed(a, c, Nsim)
+a = 0.4268421
+c = 8.631319
+Nsim = 1e5
+q = 0.5
+k1 = 16
+k2 = 5
+start_time <- proc.time()
+res = rejection_sampler_transformed(a, c, Nsim, q, k1, k2)
+end_time <- proc.time()
+print(end_time - start_time)
 sample = res$sample
 acceptance_rate = res$ar
 
@@ -35,51 +40,127 @@ plot_lscale_sample(sample, a, c)
 ```
 
 ```{r}
+# a small, c positive
 # Check acceptance rate via simulation
-aseq <- seq(1e-7, 1e-10, length.out = 20)
-c = seq(0, 5, length.out = 20)
+aseq <- seq(1e-2, 1, length.out = 20)
+c = seq(0, 10, length.out = 20)
+
+q = 0.5
+k1 = 16
+k2 = 5
 
 # Create a dataframe
 df <- map_df(aseq, ~{
-  c_values  = c * sqrt(log(4)) / (.x)
+  c_values  = c / (.x)
   data.frame(
     a = .x,
     c = c,
-    acceptance_rate = sapply(c_values, get_acceptance_rate, a = .x)
+    acceptance_rate = sapply(c_values, get_acceptance_rate, a = .x, q = q, k1 = k1, k2 = k2)
   )
 })
 
 # Plot
-ggplot(df, aes(x=c, y=acceptance_rate, color=a, group=a)) + 
-  geom_line() +
-  labs(x="a * c / sqrt(log(4))", y="Acceptance rate", color="a value") +
-  theme_minimal() +
-  scale_y_continuous(limits = c(0, 1)) +
-  scale_color_gradient(low="#72EDF2", high="#736EFE")
+p1 = ggplot(df, aes(x=c, y=acceptance_rate, color=a, group=a)) + 
+    geom_line() +
+    labs(x="a * c", y="Acceptance rate", color="a value", title = "0 < a < 1, c >= 0", ) +
+    theme_minimal() +
+    scale_y_continuous(limits = c(0, 1)) +
+    scale_color_gradient(low="#72EDF2", high="#736EFE")+
+    theme(plot.title = element_text(hjust = 0.5))
 ```
 
 ```{r}
+# a large, c positive
 # Check acceptance rate via simulation
-aseq <- seq(1, 10, length.out = 20)
+aseq <- seq(1, 100, length.out = 20)
 c = seq(0, 10, length.out = 20)
 
+q = 0.5
+k1 = 16
+k2 = 5
+
 # Create a dataframe
-df <- map_df(aseq, ~{
+df2 <- map_df(aseq, ~{
+  c_values  = c * (.x)
   data.frame(
     a = .x,
     c = c,
-    acceptance_rate = sapply(c, get_acceptance_rate, a = .x)
+    acceptance_rate = sapply(c_values, get_acceptance_rate, a = .x, q = q, k1 = k1, k2 = k2)
   )
 })
 
 # Plot
-ggplot(df, aes(x=c, y=acceptance_rate, color=a, group=a)) + 
-  geom_line() +
-  labs(x="c", y="Acceptance rate", color="a value") +
-  theme_minimal() +
-  scale_y_continuous(limits = c(0, 1)) +
-  scale_color_gradient(low="#72EDF2", high="#736EFE")
+p2 = ggplot(df2, aes(x=c, y=acceptance_rate, color=a, group=a)) + 
+    geom_line() +
+    labs(x="c / a", y="Acceptance rate", color="a value", title = "a >= 1, c >= 0") +
+    theme_minimal() +
+    scale_y_continuous(limits = c(0, 1)) +
+    scale_color_gradient(low="#72EDF2", high="#736EFE") +
+    theme(plot.title = element_text(hjust = 0.5))
 ```
+
+```{r}
+# a large, c negative
+# Check acceptance rate via simulation
+aseq <- seq(1, 10, length.out = 20)
+c = seq(0, 100, length.out = 20)
+
+q = 0.5
+k1 = 16
+k2 = 5
+
+# Create a dataframe
+df3 <- map_df(aseq, ~{
+  c_values  = - c * (.x)
+  data.frame(
+    a = .x,
+    c = c,
+    acceptance_rate = sapply(c_values, get_acceptance_rate, a = .x, q = q, k1 = k1, k2 = k2)
+  )
+})
+
+# Plot
+p3 = ggplot(df3, aes(x=c, y=acceptance_rate, color=a, group=a)) + 
+    geom_line() +
+    labs(x="abs(c) / a", y="Acceptance rate", color="a value", title = "a >= 1, c <= 0") +
+    theme_minimal() +
+    scale_y_continuous(limits = c(0, 1)) +
+    scale_color_gradient(low="#72EDF2", high="#736EFE") +
+    theme(plot.title = element_text(hjust = 0.5))
+  
+```
+
+```{r}
+# a small, c negative
+# Check acceptance rate via simulation
+aseq <- seq(1e-2, 1, length.out = 20)
+c = seq(0, 100, length.out = 20)
+
+q = 0.5
+k1 = 16
+k2 = 5
+
+# Create a dataframe
+df4 <- map_df(aseq, ~{
+  c_values  = - c / (.x)
+  data.frame(
+    a = .x,
+    c = c,
+    acceptance_rate = sapply(c_values, get_acceptance_rate, a = .x, q = q, k1 = k1, k2 = k2)
+  )
+})
+
+# Plot
+p4 = ggplot(df4, aes(x=c, y=acceptance_rate, color=a, group=a)) + 
+    geom_line() +
+    labs(x="a * abs(c)", y="Acceptance rate", color="a value", title = "0 < a < 1, c <= 0") +
+    theme_minimal() +
+    scale_y_continuous(limits = c(0, 1)) +
+    scale_color_gradient(low="#72EDF2", high="#736EFE") +
+    theme(plot.title = element_text(hjust = 0.5))
+```
+
+
 
 
 
